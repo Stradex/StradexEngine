@@ -1,0 +1,5 @@
+//Mapas de ejemplo
+
+//Ejemplo01:
+
+[["HellShit",[1024,768],[0,0]],[["FArcho","archo",0,[["death","archoSurvival/sprites/Enemies/Archo/death1.png"],["derecha","archoSurvival/sprites/Enemies/Archo/derecha1.png"],["izquierda","archoSurvival/sprites/Enemies/Archo/izquierda1.png"]],[73,74]],["FBloque","Bloque",2,[["idle","archoSurvival/sprites/textures/cyberpunk/AElectric1.png"]],[50,50]],["FItem","item",2,[["idle","archoSurvival/sprites/Enemies/Archo/caca1.png"]],[39,30]],["FPlataforma","Bloque",5,[["idle","archoSurvival/sprites/textures/cyberpunk/AElectric1.png"]],[50,50]]],[["FArcho","archo",[],"derecha",[232,37],0],["FBloque","Bloque",[10,10],"idle",[226,108],2],["FBloque","Bloque",[10,10],"idle",[326,109],2],["FBloque","Bloque",[10,10],"idle",[275,109],2],["FBloque","Bloque",[10,10],"idle",[504,393],2],["FItem","item",[1,1],"idle",[511,364],2]]]

@@ -1,0 +1,28 @@
+div.father
+{
+	position: relative;
+	display: block;
+	background: #fafafa;
+	border: 1px solid #202020;
+	width: 500px;
+	height: 500px;
+	margin-top: 50px;
+	margin-left: 10px;
+	padding: 10px;
+	overflow:hidden;
+}
+
+div.father > div
+{
+	
+	/*padding: 20px;*/
+	position: relative;
+	display: block;
+	left: 25px;
+	top: 35px;
+	border: 1px solid #555555;
+	width:100px;
+	height: 100px;
+	background: #ababab;
+
+}
