@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+<title>Stradex Engine: Mape Maker v0.1</title>
+<meta http-equiv="content-type" content="application/xhtml+xml; charset=UTF-8" />
+<script type="text/javascript" src="code/FBase/FObjects.js" defer="defer"></script>
+<script type="text/javascript" src="code/FGame/FGame.js" defer="defer"></script>
+<script type="text/javascript" src="code/FGame/FMapBase.js" defer="defer"></script>
+<script type="text/javascript" src="code/FGame/FMapMaker.js" defer="defer"></script>
+<link rel="stylesheet" href="design/reset.css" style="text/css" />
+<link rel="stylesheet" href="design/FGame/mapMaker.css" style="text/css" />
+</head>
+<body>
+<div class="workbar">
+<div id="tool_delete" style="background-image:url('design/FGame/images/tool_delete.png');"></div>
+<div id="tool_back" style="background-image:url('design/FGame/images/tool_back.png');"></div>
+<div id="tool_moveentity" style="background-image:url('design/FGame/images/tool_moveentity.png');"></div>
+<div id="tool_movemap" style="background-image:url('design/FGame/images/tool_movemap.png');"></div>
+<div id="tool_select" style="background-image:url('design/FGame/images/tool_select.png'); border:1px solid #9f261d;"></div>
+</div>
+<div class="worldBack"></div>
+<div id="worldSpace">
+<div class="logo">
+<h1>Version 0.1</h1>
+</div>
+</div>
+<div class="toolbar">
+	<h1> Stradex Engine <br /> Map Maker v0.1 </h1>
+	<div class="menu">
+	<ul>
+	<li id="btn_mapsettings">Mapa
+	<li id="btn_objsettings">Objetos
+	</ul>
+	</div>
+	<div class="section" id="map_settings">
+	<div class="submenu">
+	<ul>
+	<li id="btn_loadmap">Cargar Mapa
+	<li id="btn_mapmodify">Configuracion /<br />Generar
+	</ul>
+	</div>
+	<div class="sec_section" id="map_config">
+		<form action="#">
+		<h2> Nombre del mapa </h2>
+		<input type="text" id="txt_mapname" maxlength="32" />
+
+		<h2>Resolucion del juego</h2>
+		<h3>X: </h3> <input class="small" type="text" id="txt_resx" maxlength="5" />
+		<h3>Y: </h3> <input class="small" type="text" id="txt_resy" maxlength="5" />
+
+		<h2>Dimensiones del mapa</h2>
+		<h3>X: </h3> <input class="small" type="text" id="txt_dimx" maxlength="5" />
+		<h3>Y: </h3> <input class="small" type="text" id="txt_dimy" maxlength="5" /><br />
+		<input type="button" id="btn_refreshmapdata" value="Aplicar y Actualizar" /><br />
+		<input type="button" id="btn_getmapcode" value="Guardar Mapa" />
+		<input type="button" id="btn_getmapexportcode" value="Exportar Mapa" />
+		</form>
+	</div>
+	<div class="sec_section" id="map_load">
+		<form action="#">
+		<h2> Cargar Mapa (Insertar codigo) </h2>
+			<textarea id="txt_allmapcode">
+			</textarea>
+		<input type="button" id="btn_loadmapcode" value="Cargar" />
+		</form>
+	</div>
+	</div>
+	<div class="section" id="obj_settings">
+	<div class="submenu">
+	<ul>
+	<li id="btn_addnewobj">Cargar Objetos
+	<li id="btn_insertobj">Insertar<br />al mapa
+	</ul>
+	</div>
+		<div class="sec_section" id="obj_loadall">
+			<form action="#">
+			<h2>Insertar el codigo de los objetos</h2>
+			<textarea name="allobjects" id="txt_allobjsjson" >
+			</textarea>
+
+			<input type="button" id="btn_loadall" name="txt_addobj" value="Procesar" />
+			</form>
+		</div>
+		<!--
+		Para la version v0.2
+		<div class="sec_section" id="obj_selected">
+		</div>
+		-->
+		<div class="sec_section" id="obj_addtomap">
+			<form action="#">
+			<h2>Insertar Objetos</h2>
+			<h2>Seleccionar de la lista</h2>
+			<select name="objetos"  id="select_objects">
+				<!-- Completar con Javascript -->
+			</select>
+			<div id="obj_miniatura"></div>
+			<div id="obj_parametros"></div>
+
+			<br />
+			Animaciones:
+			<br />
+			<select name="objetos_anims"  id="select_objanims">
+				<!-- Completar con Javascript -->
+			</select><br />
+			<br />
+			Z-Index:			
+			<br />
+			<input type="text" id="txt_zindex"  maxlength="4" />
+			<br />
+			<input type="button" id="btn_addobjtomap" name="txt_addobj" value="Agregar al mapa" />
+			
+			</form>
+		</div>
+	</div>
+</div>
+</body>
+</html>
+
