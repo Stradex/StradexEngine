@@ -146,6 +146,12 @@ function refreshMapData(event)
 	if ($('#txt_mapname').val().replace(' ', '').length > 0)
 		MapWorld.mapName = $('#txt_mapname').val();
 	
+	if ($('#txt_backimg').val().replace(' ', '').length > 0)
+	{
+		$(MapWorld.world.obj).css('background-image', 'url(' + $('#txt_backimg').val() + ')');
+		$(MapWorld.world.obj).css('background-size', '100% auto');
+		$(MapWorld.world.obj).css('background-repeat', 'repeat-y');
+	}
 	DebugTool.setTimeMessage("Información actualizada correctamente", 2500, true);
 }
 

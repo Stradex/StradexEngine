@@ -1,3 +1,4 @@
+
 /*
 * A hacer para la alpha01 final
 * 0. Para el punto 2 es necesario estudiar los documentos, como minimo, "05 trabajo y energia",  "06 torque y cuerpos extensos" y "07 Movimiento lineal y choque"
@@ -19,7 +20,6 @@
 
 
 //DEFS
-
 var PIXELS_A_METROS 			= 35.0; //Cambiar segun correspondan los sprites del juego
 var FGAME_NO_COLISION 			= 0;
 var FGAME_COLISION_ABAJO 		= 1;
@@ -58,6 +58,118 @@ var tmpImage = new FImage(image);
 		$(tmpThis.obj).attr("src", srcData);
 		
 	*/
+
+//Clase para los sonidos
+(function()
+{
+	var soundElement = new Array();
+	var MAX_SOUND_WAIT = 15; //Lo maximo en segundos a esperar que cargue un sonido
+	var waitTime = new Array;
+	FSound = function(src)
+	{
+		FMain.call(this);
+
+		this.id = soundElement.length;
+		soundElement[this.id] = document.createElement('audio');
+		this.loaded = false;
+		this.error = false;
+		this.playing = false;
+		waitTime[this.id] = 0;
+		this.repeat = false;
+		this.init(src);
+		this.volume = 1.0;
+
+
+	}
+	
+	fHeredarProto(FMain, FSound);
+	
+	function soundLoaded()
+	{
+
+		this.loaded = true;
+		this.error = false;
+		if (this.repeat)
+		{
+			EventUtil.addHandler(soundElement[this.id], "ended", function(tthis) {return function() {
+
+				if (tthis.repeat)
+				{
+					soundElement[tthis.id].currentTime = 0;
+					soundElement[tthis.id].play();
+				} else {
+					soundElement[tthis.id].playing = false;
+				}
+			}; }(this));
+
+		}
+
+		this.onLoaded();
+	}
+	function soundFailed()
+	{
+		this.loaded = false;
+		this.error = true;
+		this.onError();
+	}
+	
+	//Funcion PARA SER SOBRECARGADA
+	FSound.prototype.onLoaded = function() { }
+	FSound.prototype.onError = function() { }
+	
+	FSound.prototype.init = function(src)
+	{
+
+
+		EventUtil.addHandler(soundElement[this.id], "canplay", function(tthis) {return function() { soundLoaded.call(tthis); }; }(this));
+		EventUtil.addHandler(soundElement[this.id], "error", function(tthis) {return function() { soundFailed.call(tthis); }; }(this));
+		soundElement[this.id].setAttribute('src', src);
+		soundElement[this.id].load();
+
+
+	}
+	/*
+	* Para reproducir el sonido
+	* [OP] @param bool - TRUE: se puede reproducir un sonido por encima de otro
+	* [OP] @param bool - TRUE: se toma el tiempo de esperar, MAXIMO 
+	*/
+	FSound.prototype.play = function()
+	{
+		var playAnyway = (typeof arguments[0] !== 'undefined') ? arguments[0] : false;
+		var wait = (typeof arguments[1] !== 'undefined') ? arguments[1] : false;
+		if (!this.loaded)
+		{
+			 if (wait && waitTime[this.id] < MAX_SOUND_WAIT && !this.error)
+			 {
+				this.addTimeout(function(tthis) { return function() {
+					waitTime[tthis.id]+= 0.25;
+					tthis.play(true);
+				}; }(this), 125, 1);
+			 } else {
+				 soundFailed.call(this);
+				 this.clearTimeouts(1);
+			 }
+			return false;
+			
+		}
+		this.clearTimeouts(1);
+		soundElement[this.id].volume = this.volume;
+		if (playAnyway && this.playing)
+		{
+			var tmpSound = document.createElement('audio');
+			EventUtil.addHandler(tmpSound, "canplay", function(tsound) {return function() { tsound.play(); }; }(tmpSound));
+			tmpSound.setAttribute('src', soundElement[this.id].src);
+			tmpSound.load();
+		}
+		soundElement[this.id].play();
+		this.playing = true;
+		return true;
+	}
+	
+
+	
+})();
+	
 //Clase para animaciones
 (function()
 {
@@ -65,6 +177,7 @@ var tmpImage = new FImage(image);
 	var currentFrame = new Array();
 	var aFPS = new Array();
 	var dims = new Array();
+	var isPlaying = new Array();
 	var thisClassName = "FAnimation"; //IMPORTANTISIMO!!!
 
 FAnimation = function(tobj)
@@ -78,14 +191,15 @@ FAnimation = function(tobj)
 	this.tmpLoaded = false;
 	sprites[sprites.length] = new Array();
 	currentFrame[currentFrame.length] = 0;
+	isPlaying[isPlaying.length] = false;
 	aFPS[aFPS.length] = 60;
 	dims[dims.length] = new FCoord(0, 0, 0);
-
 	this.AnimInit();
 }	
 
 fHeredarProto(FMain, FAnimation);
 
+FAnimation.prototype.onAnimationEnd = function() { }; //remplazar por un callback personalizado
 
 FAnimation.prototype.getClassTypeName = function()
 {
@@ -150,14 +264,18 @@ FAnimation.prototype.stop = function()
 	currentFrame[this.id] = 0;
 	//$(this.img).attr("src", sprites[this.id][currentFrame[this.id]]);
 	this.clearTimeouts(this.id);
+	isPlaying[this.id] = false;
 	
 }
 FAnimation.prototype.pause = function()
 {
 	this.clearTimeouts(this.id);
+	isPlaying[this.id] = false;
 }
 FAnimation.prototype.play = function()
 {
+	if (!isPlaying[this.id])
+		isPlaying[this.id] = true;
 	$(this.img).attr("src", sprites[this.id][currentFrame[this.id]]);
 	currentFrame[this.id]++;
 	if (currentFrame[this.id] >= sprites[this.id].length)
@@ -168,6 +286,13 @@ FAnimation.prototype.play = function()
 			this.addTimeout(function(tthis) { return function() {
 				tthis.play();
 			}; }(this), this.getAnimFPS(), this.id);
+		} else {
+			currentFrame[this.id] = sprites[this.id].length-1;
+			if (isPlaying[this.id])
+			{
+				isPlaying[this.id] = false;
+				this.onAnimationEnd();
+			}
 		}
 
 	} else {
@@ -226,7 +351,7 @@ var worldX = new Array();
 var oldWorldX = new Array();
 var oldWorldY = new Array();
 var oldWorldZ = new Array();
-
+var ignoreColisionWith = new Array();
 var worldY = new Array();
 var worldZ = new Array();
 var keyBeingPressed = new Array();
@@ -257,7 +382,11 @@ var nonSolidClasses = new Array();
 var fDimensions = new Array();
 var ignoreAnimDimensions = new Array();
 var zIndexVal = new Array();
-
+var insideWorldView = new Array();
+var detailedColision = new Array();
+var isMoving = new Array();
+var oldVelX = new Array();
+var oldVelY = new Array();
 FEntity = function()
 {
 	var tclassName = (typeof arguments[0] !== 'undefined') ? arguments[0] : "Entity";
@@ -297,8 +426,12 @@ FEntity = function()
 	speeds[speeds.length] = new FCoord(0, 0, 0); //Para las velocidades finales
 	tmpSpeeds[tmpSpeeds.length] = new Array(); //Para poder agregar velocidades (vectores secundarios)
 	customSpeeds[customSpeeds.length] = new Array();
-	
-
+	insideWorldView[insideWorldView.length] = false;
+	ignoreColisionWith[ignoreColisionWith.length] = new Array();
+	detailedColision[detailedColision.length] = false;
+	isMoving[isMoving.length] = true;
+	oldVelX[oldVelX.length] = 0;
+	oldVelY[oldVelY.length] = 0;
 	//Callbacks de eventos Mejor como prototypes
 	//this.onColision =  null;
 	//this.onSpawn =  null;
@@ -384,11 +517,44 @@ function clearAllAnimations()
 	animaciones[this.id].length = 0;
 }
 
+FEntity.prototype.detailedColisionDetection = function()
+{
+	return detailedColision[this.id];
+}
+FEntity.prototype.enableDetailedColision = function()
+{
+	detailedColision[this.id] = true;
+}
+FEntity.prototype.disableDetailedColision = function()
+{
+	detailedColision[this.id] = false;
+}
+FEntity.prototype.isInsideWorldView = function()
+{
+	return insideWorldView[this.id];
+}
+FEntity.prototype.setInsideWorldView = function(mode)
+{
+	insideWorldView[this.id] = mode;
+}
 FEntity.prototype.setZIndex = function(nzindex)
 {
 	zIndexVal[this.id] = nzindex;
 }
-
+FEntity.prototype.addIgnoreColisionWith = function(whoIgnore)
+{
+	ignoreColisionWith[this.id].push(whoIgnore);
+}
+FEntity.prototype.isIgnoringColisionWith = function(whoIgnore)
+{
+	var i, len;
+	for (i=0, len=ignoreColisionWith[this.id]; i < len; i++)
+	{
+		if (myStrICmp(ignoreColisionWith[this.id][i], whoIgnore) == 0)
+			return true;
+	}
+	return false;
+}
 FEntity.prototype.getZIndex = function()
 {
 	return zIndexVal[this.id];
@@ -402,9 +568,9 @@ FEntity.prototype.getClassTypeName = function()
 /* ESTAS FUNCIONES TIPO EVENTOS TIENEN QUE SER SOBRECARGADAS EN LAS CLASES DERIVADAS*/
 FEntity.prototype.mainFunction = function() { }
 FEntity.prototype.onSpawn = function() { }
-FEntity.prototype.onColision = function() { }
+FEntity.prototype.onColision = function(elem, tipo) { }
 FEntity.prototype.onDestroy = function() { }
-
+FEntity.prototype.onAnimationEnd = function() { }
 /**
 * Esta funcion permite establecer dimensiones propias para nuestro objeto ignorando las originales de la animacion usada, de esta
 * manera se pueden mejorar las colisiones con algunos objetos determinados
@@ -550,6 +716,9 @@ FEntity.prototype.destroy = function()
 		this.obj.parentNode.removeChild(this.obj);
 	destroyed[this.id] = true;
 	this.clearAllTimeouts(true);
+	colisiones[this.id].length = 0;
+	tmpSpeeds[this.id].length = 0; //Para poder agregar velocidades (vectores secundarios)
+	customSpeeds[this.id].length = 0;
 	this.onDestroy();
 }
 FEntity.prototype.isDestroyed = function()
@@ -619,14 +788,17 @@ FEntity.prototype.clearCustomXSpeeds = function()
 }
 FEntity.prototype.getAllCustomVels = function()
 {
-	var newVel = new FCoord(0, 0, 0);
+	//var newVel = new FCoord(0, 0, 0);
 	var i, len;
+	var customX = 0, customY = 0;
 	for (i=0, len=customSpeeds[this.id].length; i < len; i++)
 	{
-		newVel.setX(newVel.getX() + customSpeeds[this.id][i][0].getX());
-		newVel.setY(newVel.getY() + customSpeeds[this.id][i][0].getY());
+		customX += parseInt(customSpeeds[this.id][i][0].getX());
+		customY += parseInt(customSpeeds[this.id][i][0].getY());
 	}
-	return newVel;
+	//newVel.setX(customX);
+	//newVel.setY(customY);
+	return new Array(customX, customY); //newVel;
 }
 
 FEntity.prototype.clearCustomSpeeds = function()
@@ -637,7 +809,7 @@ FEntity.prototype.clearCustomSpeeds = function()
 FEntity.prototype.setCustomVelX = function (vx, idcustom)
 {
 	var index = getCustomSpeedIndex.call(this, idcustom);
-	
+	isMoving[this.id] = true;
 	if (index >= 0)
 	{
 		customSpeeds[this.id][index][0].setX(vx);
@@ -651,6 +823,7 @@ FEntity.prototype.setCustomVelX = function (vx, idcustom)
 
 FEntity.prototype.setCustomVelY = function (vy, idcustom)
 {
+	isMoving[this.id] = true;
 	var index = getCustomSpeedIndex.call(this, idcustom);
 	
 	if (index >= 0)
@@ -666,6 +839,7 @@ FEntity.prototype.setCustomVelY = function (vy, idcustom)
 
 FEntity.prototype.getCustomVelX = function(idcustom)
 {
+
 	var index = getCustomSpeedIndex.call(this, idcustom);
 	if (index >= 0)
 		return customSpeeds[this.id][index][0].getX();
@@ -719,15 +893,24 @@ FEntity.prototype.getVelX = function()
 {
 	var fullSpeeds = (typeof arguments[0] !== 'undefined') ? arguments[0] : false;
 	if (fullSpeeds)
-		return speeds[this.id].getX() + this.getAllCustomVels().getX();
-	
+	{
+		if (isMoving[this.id])
+			return speeds[this.id].getX() + this.getAllCustomVels()[0];
+		else
+			return oldVelX[this.id];
+	}
 	return speeds[this.id].getX();
 }
 FEntity.prototype.getVelY = function()
 {
 	var fullSpeeds = (typeof arguments[0] !== 'undefined') ? arguments[0] : false;
 	if (fullSpeeds)
-		return speeds[this.id].getY() + this.getAllCustomVels().getY();
+	{
+		if (isMoving[this.id])
+			return speeds[this.id].getY() + this.getAllCustomVels()[1];
+		else
+			return oldVelY[this.id];
+	}
 	
 	return speeds[this.id].getY();
 }
@@ -741,6 +924,7 @@ FEntity.prototype.getVelY = function()
 
 FEntity.prototype.setVelX = function(vx)
 {
+	isMoving[this.id] = true;
 	var clearCustom = (typeof arguments[1] !== 'undefined') ? arguments[1] : false;
 	var i;
 	var tmpVY = 0;
@@ -757,6 +941,7 @@ FEntity.prototype.setVelX = function(vx)
 }
 FEntity.prototype.setVelY = function(vy)
 {
+	isMoving[this.id] = true;
 	var clearCustom = (typeof arguments[1] !== 'undefined') ? arguments[1] : false;
 	
 	var i;
@@ -774,10 +959,12 @@ FEntity.prototype.setVelY = function(vy)
 }
 FEntity.prototype.addVelX = function(vx)
 {
+	isMoving[this.id] = true;
 	tmpSpeeds[this.id].push(new FCoord(vx, 0, 0));
 }
 FEntity.prototype.addVelY = function(vy)
 {
+	isMoving[this.id] = true;
 	tmpSpeeds[this.id].push(new FCoord(0, vy, 0));
 }
 
@@ -909,7 +1096,10 @@ FEntity.prototype.addColision = function(elem, tipo)
 		throw new Error("Solo se puede pasar objetos FEntity como parametro");
 		return;
 	}
-
+	
+	if (elem.isDestroyed())
+		return;
+	
 	var tmpIndex = colisiones[this.id].length;
 	var i;
 	var colExists = false;
@@ -928,7 +1118,7 @@ FEntity.prototype.addColision = function(elem, tipo)
 		colisiones[this.id][tmpIndex] = new Array();
 		colisiones[this.id][tmpIndex][0] = elem;
 		colisiones[this.id][tmpIndex][1] = tipo;
-		this.onColision();
+		this.onColision(elem, tipo); //SI O SI 2 PARAMETROS
 	} else {
 		colisiones[this.id][tmpIndex][1] = tipo;
 	}
@@ -1002,61 +1192,59 @@ FEntity.prototype.getYSpeed = function(g)
 	} 
 	return tmpSpeed;
 }
-FEntity.prototype.calculateVelocity = function(grav, ms)
-{
-	//Reseteo las velocidades
-	//this.setVelY(0);
-	//this.setVelX(0);
-	var tmpYSpeed = 0;
-	var tmpXSpeed = 0;
-	var multiPlier = parseFloat(ms/1000.0);
-	if (this.checkGravity() && this.isFalling())
-		tmpSpeeds[this.id].push(new FCoord(0, grav, 0));
-	
-	var i;
-	/*customSpeeds[this.id][tmpLength]
-	*/
-	var customXSpeed = 0;
-	var customYSpeed = 0;
-	for (i=0; i < customSpeeds[this.id].length; i++)
-	{
-		tmpSpeeds[this.id].push(new FCoord(customSpeeds[this.id][i][0].getX(), customSpeeds[this.id][i][0].getY(), 0));
-		customXSpeed += customSpeeds[this.id][i][0].getX();
-		customYSpeed += customSpeeds[this.id][i][0].getY();
-	}
-
-	
-	//Cargo las velocidades viejas cargadas
-	//*parseFloat(ms/1000.0) -> De Pixels/s a Pixels/¿?ms
-	for (i=0; i < tmpSpeeds[this.id].length; i++)
-	{
-		tmpYSpeed += tmpSpeeds[this.id][i].getY();
-		tmpXSpeed += tmpSpeeds[this.id][i].getX();
-	}
-	this.setVelY(tmpYSpeed);
-	this.setVelX(tmpXSpeed);
-	tmpXSpeed -= customXSpeed;
-	tmpYSpeed -= customYSpeed;
-	tmpSpeeds[this.id].length = 0; //Reseteo todas las velocidades temporales a 0
-	tmpSpeeds[this.id][0] = new FCoord(tmpXSpeed, tmpYSpeed, 0); //La velocidad tmpSpeeds SIEMPRE tiene que estar en pixels/s, por hago la transformacion
-	/*DebugTool.setMessage("Informacion de la velocidad");
-	//DebugTool.addMessage("Velx: " + this.getVelX(true));
-	//DebugTool.addMessage("VelY: " + this.getVelY(true));
-	//DebugTool.addMessage("tmpSpeeds.length: " + tmpSpeeds[this.id].length);
-	//DebugTool.addMessage("Gravedad: " + grav);
-			//DebugTool.addMessage("CustonXSpeed: " + customXSpeed);*/
-}
 FEntity.prototype.refreshWorldPositions = function(grav, ms) //Pixels/s
 {
+	var hasGravity = this.checkGravity();
+	if (hasGravity)
+		isMoving[this.id] = true;
 	var tmpYPos = worldY[this.id];
 	var tmpXPos = worldX[this.id];
-	
-	this.calculateVelocity(grav, ms);
-	
-	tmpYPos += parseFloat(this.getVelY()*ms/1000.0);
-	tmpXPos += parseFloat(this.getVelX()*ms/1000.0);
-	this.setWorldY(tmpYPos);
-	this.setWorldX(tmpXPos);
+	var tmpOldPosX, tmpOldPosY;
+	if (isMoving[this.id])
+	{
+
+		var i, len;
+		var tmpYVel = 0;
+		var tmpXVel = 0;
+		if (hasGravity)
+			tmpYVel+=grav;
+		for (i=0, len=tmpSpeeds[this.id].length; i < len; i++)
+		{
+			tmpYVel+= tmpSpeeds[this.id][i].getY();
+			tmpXVel+= tmpSpeeds[this.id][i].getX();
+		}
+		tmpSpeeds[this.id].length = 0;
+		this.setVelY(tmpYVel);
+		this.setVelX(tmpXVel);
+
+		var tmpCustomVels = this.getAllCustomVels();
+		//alert(tmpCustomVels);
+		//tmpSpeeds[this.id].push(new FCoord(0, grav, 0));
+		//tmpYSpeed += parseInt(grav);
+		//oldVelX[this.id] = parseFloat((this.getVelX()+tmpCustomVels[0])*ms/1000.0);
+		//oldVelY[this.id] = parseFloat((this.getVelY()+tmpCustomVels[1])*ms/1000.0);
+
+		oldVelX[this.id] = this.getVelX()+tmpCustomVels[0]
+		oldVelY[this.id] = this.getVelY()+tmpCustomVels[1];
+		
+		tmpOldPosX = parseFloat(oldVelX[this.id]*ms/1000.0);
+		tmpOldPosY = parseFloat(oldVelY[this.id]*ms/1000.0);
+		
+		tmpXPos += tmpOldPosX;
+		tmpYPos += tmpOldPosY;
+		
+		this.setWorldX(tmpXPos);
+		this.setWorldY(tmpYPos);
+		isMoving[this.id] = false;
+	} else {
+		
+		tmpOldPosX = parseFloat(oldVelX[this.id]*ms/1000.0);
+		tmpOldPosY = parseFloat(oldVelY[this.id]*ms/1000.0);
+		
+		this.setWorldY(tmpYPos+tmpOldPosY);
+		this.setWorldX(tmpXPos+tmpOldPosX);
+	}
+
 }
 
 /*
@@ -1112,12 +1300,14 @@ FEntity.prototype.playAnimation = function(animName)
 			currentAnim[this.id] = animaciones[this.id][i].animName;
 			animaciones[this.id][i].stop();
 			animaciones[this.id][i].play();
+			animaciones[this.id][i].onAnimationEnd = this.onAnimationEnd(); //la que se esta por reproducir actualmente solo importa
 			currentSize[this.id].setX(animaciones[this.id][i].getWidth());
 			currentSize[this.id].setY(animaciones[this.id][i].getHeight());
 			found = i;
 			//alert("yeah");
 		} else {
 			animaciones[this.id][i].stop();
+			animaciones[this.id][i].onAnimationEnd = function() { }; //funcion que no hace nada
 		}
 	}
 	if (found != -1)
@@ -1171,7 +1361,7 @@ FEntity.prototype.getWorldZ = function()
 FEntity.prototype.setWorldX = function(x)
 {
 	var teleport = (typeof arguments[1] !== 'undefined') ? arguments[1] : false;
-	this.setPosX(x);
+	//this.setPosX(x);
 	//this.refreshPosition(false);
 	if (teleport || setXFirstUse[this.id])
 	{
@@ -1188,7 +1378,7 @@ FEntity.prototype.setWorldY = function(y)
 {
 	var teleport = (typeof arguments[1] !== 'undefined') ? arguments[1] : false;
 
-	this.setPosY(y);
+	//this.setPosY(y);
 	//this.refreshPosition(false);
 	if (teleport || setYFirstUse[this.id])
 	{
@@ -1234,6 +1424,7 @@ FMap = function(mpName)
 	this.id = mapName.length;
 	mapName[mapName.length] = mpName;
 	entidades[entidades.length] = new Array();
+	this.backgroundSrc = "none";
 }
 
 fHeredarProto(FMain, FMap);
@@ -1328,6 +1519,14 @@ FCamera.prototype.getX = function()
 	}
 	return cameraPosition[this.id].getX(); 
 }
+FCamera.prototype.getLimitX = function()
+{
+	return worldLimits[this.id][0];
+}
+FCamera.prototype.getLimitY = function()
+{
+	return worldLimits[this.id][1];
+}
 FCamera.prototype.getY = function()
 {
 	if (this.focusOnEntity())
@@ -1385,6 +1584,7 @@ FCamera.prototype.setEntityFocus = function(tEntity)
 })();
 
 //Elementos para el HUD de FGameWorld (NO USAR ESTA CLASE, ES SOLAMENTE LA CLASE PADRE)
+
 (function() 
 {
 	var followValues = new Array();
@@ -1396,10 +1596,13 @@ FCamera.prototype.setEntityFocus = function(tEntity)
 	* 3. Valor a 'seguir' (FDinamicValue)
 	**/
 	var MIN_ZINDEX= 5000;
+	var destroyed = new Array();
 	FHudElement = function(xpos, ypos)
 	{
 		FMain.call(this);
+		this.tag = (typeof arguments[5] !== 'undefined') ? arguments[5] : -1; //-1 = sin tag
 		this.id = followValues.length;
+		destroyed[this.id] = false;
 		this.x = xpos;
 		this.y = ypos;
 		this.opacity = 1.0;
@@ -1413,7 +1616,15 @@ FCamera.prototype.setEntityFocus = function(tEntity)
 	}
 	
 	fHeredarProto(FMain, FHudElement); //Para timeouts y eso, que capaz nos son utiles despues
-
+	FHudElement.prototype.destroy = function()
+	{
+		destroyed[this.id] = true;
+		followValues[this.id] = null;
+	}
+	FHudElement.prototype.isDestroyed = function()
+	{
+		return destroyed[this.id];
+	}
 	FHudElement.prototype.getFollowValue = function()
 	{
 		if (followValues[this.id] == null)
@@ -1448,10 +1659,11 @@ var FGAME_HUD_ALIGNBOTTOM		= 1;
 	*	 4. (Opcional) Alineacion horizontal (FGAME_HUD_ALIGNIZQ, FGAME_HUD_ALIGNCEN, FGAME_HUD_ALIGNDER)  
 	*	 5. (Opcional) Alineacion vertical (FGAME_HUD_ALIGNTOP, FGAME_HUD_ALIGNCEN, FGAME_HUD_ALIGNBOTTOM)  
 	*	 6. (Opcional) Variable a seguir (variable tipo FDinamicValue)
+	*	 7. (Opcional) El TAG del elemento HUD para poder ser luego eliminado o manipulado desde FGameWorld
 	**/
 	FHudMessage = function(msgFormat, xpos, ypos)
 	{
-		FHudElement.call(this, xpos, ypos, arguments[3], arguments[5], arguments[4]);
+		FHudElement.call(this, xpos, ypos, arguments[3], arguments[5], arguments[4], arguments[6]);
 		this.msg = msgFormat;
 		this.color = new FColor("#000000");
 		this.font = "Arial";
@@ -1539,12 +1751,13 @@ var FGAME_HUD_ALIGNBOTTOM		= 1;
 	* 6. Valor maximo que define el grafico (Puede ser un FDinamicValue o un numero simple)
 	* 7. (Opcional) Alineacion horizontal (FGAME_HUD_ALIGNIZQ, FGAME_HUD_ALIGNCEN, FGAME_HUD_ALIGNDER)  
 	* 8. (Opcional) Alineacion vertical (FGAME_HUD_ALIGNTOP, FGAME_HUD_ALIGNCEN, FGAME_HUD_ALIGNBOTTOM)  
+	* 9. (Opcional) El TAG del elemento HUD para poder ser luego eliminado o manipulado desde FGameWorld
 	**/
 	var tmpTextChildNode = new Array();
 	FHudRect = function(xpos, ypos, width, height, followVar, max)
 	{
 
-		FHudElement.call(this, xpos, ypos, arguments[6], followVar, arguments[7]);
+		FHudElement.call(this, xpos, ypos, arguments[6], followVar, arguments[7], arguments[8]);
 
 		this.maxValue = (max instanceof FDinamicValue) ? max : new FDinamicValue(max);
 		this.widthSize = width;
@@ -1648,6 +1861,250 @@ var FGAME_HUD_ALIGNBOTTOM		= 1;
 	}
 })();
 
+(function(){
+	/**
+	* El FHudImage permite ingresar una imagen en el HUD
+	*
+	**/
+	
+	/**
+	* Parametros del constructor: 
+	* 1. Posicion X [de 0.0 a 1.0] (0.00001, etc... son validos)
+	* 2. Posicion Y [de 0.0 a 1.0]
+	* 3. Ancho de la imagen [de 0.0 a 1.0] (0.00001, etc... son validos) SI es -1 entonces se toma automaticamente el ancho de la imagen original
+	* 4. src de la imagen
+	* 5. (Opcional) Alineacion horizontal (FGAME_HUD_ALIGNIZQ, FGAME_HUD_ALIGNCEN, FGAME_HUD_ALIGNDER)  
+	* 6. (Opcional) Alineacion vertical (FGAME_HUD_ALIGNTOP, FGAME_HUD_ALIGNCEN, FGAME_HUD_ALIGNBOTTOM)  
+	* 7. (Opcional) El TAG del elemento HUD para poder ser luego eliminado o manipulado desde FGameWorld
+	**/
+	var imageRatio = new Array();
+	function obtainWidth()
+	{
+
+		var tmpImg = new Image();
+		var tmpthis = this;
+		tmpImg.onload = function()
+		{
+
+			var tmpRatio = 1.0;
+			if (tmpthis.widthSize <= 0)
+				tmpthis.widthSize = tmpImg.width;
+			else 
+				tmpRatio = tmpthis.widthSize/tmpImg.width;
+
+			imageRatio[tmpthis.hudImageID] = (tmpImg.height*tmpRatio/tmpthis.widthSize);
+		}
+		tmpImg.src = this.src;
+	}
+
+	FHudImage = function(xpos, ypos, width, srcimage)
+	{
+
+		FHudElement.call(this, xpos, ypos, arguments[4], null, arguments[5], arguments[6]);
+
+		this.hudImageID = imageRatio.length;
+		imageRatio[this.hudImageID] = 1.0; //relacion ancho x alto
+		this.src = srcimage;
+		this.widthSize = width;
+		obtainWidth.call(this);
+
+	}
+
+	fHeredarProto(FHudElement, FHudImage); //Para timeouts y eso, que capaz nos son utiles despues
+
+	FHudImage.prototype.show = function(container, xsize, ysize, ratio)
+	{
+		if (!container.isFather(this.hudElement.obj))
+			container.addChild(this.hudElement.obj);
+		
+			//alert("Concha");
+		//alert(this.src);
+
+		$(this.hudElement.obj).css('position', 'absolute');
+		$(this.hudElement.obj).css('display', 'block');
+		$(this.hudElement.obj).css('opacity', this.opacity);
+		$(this.hudElement.obj).css('padding', 0);
+		$(this.hudElement.obj).css('margin', 0);
+		$(this.hudElement.obj).css('z-index', this.zIndex);
+		$(this.hudElement.obj).css('text-align', 'center');
+		$(this.hudElement.obj).css('background-image', 'url(' + this.src + ')');
+		$(this.hudElement.obj).css('background-size', '100% auto');
+
+		
+		var nHeight = this.widthSize*ratio*imageRatio[this.hudImageID];
+
+		$(this.hudElement.obj).css('height', Math.round(nHeight) + 'px');
+		$(this.hudElement.obj).css('width', Math.round(this.widthSize*ratio)+'px');
+		$(this.hudElement.obj).css('top', '0px');
+		$(this.hudElement.obj).css('left', '0px');
+
+		this.hudElement.getObjSize(true);
+		
+		switch (this.halign)
+		{
+			case FGAME_HUD_ALIGNDER:
+				$(this.hudElement.obj).css('left', Math.round(this.x*xsize*ratio-this.hudElement.getWidth())+'px');
+			break;
+			case FGAME_HUD_ALIGNCEN:
+				$(this.hudElement.obj).css('left', Math.round(this.x*xsize*ratio-this.hudElement.getWidth()/2)+'px');
+			break;
+
+			case FGAME_HUD_ALIGNIZQ:
+			default:
+				$(this.hudElement.obj).css('left', Math.round(this.x*xsize*ratio)+'px');
+			break;
+		}
+		switch (this.valign)
+		{
+			case FGAME_HUD_ALIGNBOTTOM:
+				$(this.hudElement.obj).css('top', Math.round(this.y*ysize*ratio-this.hudElement.getHeight())+'px');
+			break;
+			case FGAME_HUD_ALIGNCEN:
+				$(this.hudElement.obj).css('top', Math.round(this.y*ysize*ratio-this.hudElement.getHeight()/2)+'px');
+			break;
+			case FGAME_HUD_ALIGNTOP:
+			default:
+				$(this.hudElement.obj).css('top', Math.round(this.y*ysize*ratio)+'px');
+			break;
+		}
+
+	}
+})();
+
+//FAnimation 
+
+(function(){
+	/**
+	* El FHudAnimation permite ingresar una imagen en el HUD
+	*
+	**/
+	
+	/**
+	* Parametros del constructor: 
+	* 1. Posicion X [de 0.0 a 1.0] (0.00001, etc... son validos)
+	* 2. Posicion Y [de 0.0 a 1.0]
+	* 3. Instancia de FAnimation
+	* 4. (Opcional) Alineacion horizontal (FGAME_HUD_ALIGNIZQ, FGAME_HUD_ALIGNCEN, FGAME_HUD_ALIGNDER)  
+	* 5. (Opcional) Alineacion vertical (FGAME_HUD_ALIGNTOP, FGAME_HUD_ALIGNCEN, FGAME_HUD_ALIGNBOTTOM)  
+	* 6. (Opcional) El TAG del elemento HUD para poder ser luego eliminado o manipulado desde FGameWorld
+	**/
+	var animaciones = new Array();
+	var currentAnim = new Array();
+	FHudAnimation = function(xpos, ypos, fAnim)
+	{
+
+		FHudElement.call(this, xpos, ypos, arguments[3], null, arguments[4], arguments[5]);
+		this.hudAnimID = animaciones.length;
+		this.hudElement.obj = fAnim.obj.obj;
+		animaciones[this.hudAnimID] = new Array();
+		currentAnim[this.hudAnimID] = 0;
+		animaciones[this.hudAnimID].push(fAnim);
+	}
+
+	fHeredarProto(FHudElement, FHudAnimation); //Para timeouts y eso, que capaz nos son utiles despues
+
+	FHudAnimation.prototype.onAnimationEnd = function(index) { }
+	
+	FHudAnimation.prototype.addAnimation = function(fAnim)
+	{
+		if (!(fAnim instanceof FAnimation))
+		{
+			throw new Error("FHudAnimation.addAnimation requiere un paratro del tipo FAnimation!!")
+			return;
+		}
+		animaciones[this.hudAnimID].push(fAnim);
+	}
+	
+	FHudAnimation.prototype.changeAnimation = function(index)
+	{
+		if (index < 0)
+			index = animaciones[this.hudAnimID].length-1;
+		if (index >= animaciones[this.hudAnimID].length)
+			index = 0;
+		
+		currentAnim[this.hudAnimID] = index;
+		if (this.hudElement.obj.parentNode !== 'undefined')
+			this.hudElement.obj.parentNode.removeChild(this.hudElement.obj);
+		this.hudElement.obj = animaciones[this.hudAnimID][currentAnim[this.hudAnimID]].obj.obj;
+		var i, len;
+		for (i=0, len=animaciones[this.hudAnimID].length; i < len; i++)
+		{
+			animaciones[this.hudAnimID][i].onAnimationEnd = function() {}; //funcion vacia
+			animaciones[this.hudAnimID][i].stop();
+		}
+	}
+	FHudAnimation.prototype.nextAnimation = function()
+	{
+		this.changeAnimation(currentAnim[this.hudAnimID]+1);
+	}
+	FHudAnimation.prototype.previousAnimation = function()
+	{
+		this.changeAnimation(currentAnim[this.hudAnimID]-1);
+	}
+	FHudAnimation.prototype.stopAnimation = function()
+	{
+		animaciones[this.hudAnimID][currentAnim[this.hudAnimID]].stop();
+	}
+	FHudAnimation.prototype.playAnimation = function()
+	{
+		animaciones[this.hudAnimID][currentAnim[this.hudAnimID]].onAnimationEnd = function(tthis, ti) { return function() {
+			tthis.onAnimationEnd(ti); //funcion vacia
+		}; }(this, currentAnim[this.hudAnimID]);
+		animaciones[this.hudAnimID][currentAnim[this.hudAnimID]].play();
+	}
+	FHudAnimation.prototype.show = function(container, xsize, ysize, ratio)
+	{
+		if (!container.isFather(this.hudElement.obj))
+			container.addChild(this.hudElement.obj);
+		
+			//alert("Concha");
+		//alert(this.src);
+
+		$(this.hudElement.obj).css('position', 'absolute');
+		$(this.hudElement.obj).css('display', 'block');
+		$(this.hudElement.obj).css('opacity', this.opacity);
+		$(this.hudElement.obj).css('overflow', 'hidden');
+		$(this.hudElement.obj).css('padding', 0);
+		$(this.hudElement.obj).css('margin', 0);
+		$(this.hudElement.obj).css('z-index', this.zIndex);
+		
+		$(this.hudElement.obj).css('height', Math.round(animaciones[this.hudAnimID][currentAnim[this.hudAnimID]].getHeight()*ratio) + 'px');
+		$(this.hudElement.obj).css('width', Math.round(animaciones[this.hudAnimID][currentAnim[this.hudAnimID]].getWidth()*ratio)+'px');
+		$(this.hudElement.obj).css('top', '0px');
+		$(this.hudElement.obj).css('left', '0px');
+
+		this.hudElement.getObjSize(true);
+		
+		switch (this.halign)
+		{
+			case FGAME_HUD_ALIGNDER:
+				$(this.hudElement.obj).css('left', Math.round(this.x*xsize*ratio-this.hudElement.getWidth())+'px');
+			break;
+			case FGAME_HUD_ALIGNCEN:
+				$(this.hudElement.obj).css('left', Math.round(this.x*xsize*ratio-this.hudElement.getWidth()/2)+'px');
+			break;
+
+			case FGAME_HUD_ALIGNIZQ:
+			default:
+				$(this.hudElement.obj).css('left', Math.round(this.x*xsize*ratio)+'px');
+			break;
+		}
+		switch (this.valign)
+		{
+			case FGAME_HUD_ALIGNBOTTOM:
+				$(this.hudElement.obj).css('top', Math.round(this.y*ysize*ratio-this.hudElement.getHeight())+'px');
+			break;
+			case FGAME_HUD_ALIGNCEN:
+				$(this.hudElement.obj).css('top', Math.round(this.y*ysize*ratio-this.hudElement.getHeight()/2)+'px');
+			break;
+			case FGAME_HUD_ALIGNTOP:
+			default:
+				$(this.hudElement.obj).css('top', Math.round(this.y*ysize*ratio)+'px');
+			break;
+		}
+
+	}
+})();
 //Escenario del juego 
 
 (function() {
@@ -1755,6 +2212,14 @@ function loadMapByIndex(index)
 	this.clearTimeouts(this.id);
 	clearAllEntities.call(this);
 	colisionAnalize[this.id].length = 0;
+	
+	if (myStrICmp(mapas[this.id][index].backgroundSrc, "none") != 0)
+	{
+		$(this.world.obj).css('background-image', 'url(' + mapas[this.id][index].backgroundSrc + ')');
+		$(this.world.obj).css('background-size', 'auto 100%');
+		$(this.world.obj).css('background-repeat', 'repeat-x');
+	}
+	
 	for (i=0, len=mapas[this.id][index].countAllEntities(); i < len; i++)
 	{
 		entidades[this.id].push(mapas[this.id][index].loadEntity(i));
@@ -1763,6 +2228,9 @@ function loadMapByIndex(index)
 	}
 	currentMap[this.id] = index;
 	resetAllCameras.call(this);
+	
+	
+	
 }
 
 function pauseAllAnimations()
@@ -1815,9 +2283,12 @@ function calibrateColisionRange(index)
 	colisionAnalize[this.id][i].length = 0;
 	if (!entidades[this.id][i].colisionDetection())
 		return;
+	//alert("cagun");
+	//var customAVels = entidades[this.id][i].getAllCustomVels();
 	
 	radius.setX(Math.abs(entidades[this.id][i].getVelX(true)));
 	radius.setY(Math.abs(entidades[this.id][i].getVelY(true)));
+	
 	//radius = (new FCoord(entidades[this.id][i].getVelX(true), entidades[this.id][i].getVelY(true))).Mod2D()/1.5;
 		
 	if (oldRadius[this.id][i].getX() < radius.getX())
@@ -1834,7 +2305,6 @@ function calibrateColisionRange(index)
 		//radius.setX(150.0);
 		//radius.setY(150.0);
 
-
 	xa0 = entidades[this.id][i].getWorldX()-radius.getX();
 	xaf = entidades[this.id][i].getWorldX()+entidades[this.id][i].getCurrentWidth()+radius.getX();
 	ya0 = entidades[this.id][i].getWorldY()-radius.getY();
@@ -1844,8 +2314,14 @@ function calibrateColisionRange(index)
 	{
 		if (j==i)
 			continue;
-		radiusB.setX(entidades[this.id][j].getVelX(true)/1.5);
-		radiusB.setY(entidades[this.id][j].getVelY(true)/1.5);
+		if (entidades[this.id][i].isIgnoringColisionWith(entidades[this.id][j].getClassName))
+			continue;
+		if (entidades[this.id][j].isDestroyed())
+			continue;
+		
+		//var customBVels = entidades[this.id][j].getAllCustomVels();
+		radiusB.setX(Math.abs(entidades[this.id][j].getVelX(true)/1.5));
+		radiusB.setY(Math.abs(entidades[this.id][j].getVelY(true)/1.5));
 		//radiusB = (new FCoord(entidades[this.id][j].getVelX(true), entidades[this.id][j].getVelY(true))).Mod2D()/1.5;
 			
 		if (oldRadius[this.id][j].getX() < radiusB.getX())
@@ -1857,7 +2333,7 @@ function calibrateColisionRange(index)
 			oldRadius[this.id][j].setY(radiusB.getY());
 		else
 			radiusB.setY(oldRadius[this.id][j].getY());
-			
+
 		xb0 = entidades[this.id][j].getWorldX()-radiusB.getX();
 		xbf = entidades[this.id][j].getWorldX()+entidades[this.id][j].getCurrentWidth()+radiusB.getX();
 		yb0 = entidades[this.id][j].getWorldY()-radiusB.getY();
@@ -2105,8 +2581,8 @@ FGameWorld.prototype.colisiones = function(index)
 	//for (i=0; i < 3; i++)
 	//for (i=0; i < entidades[this.id].length; i++)
 	
-	if (index == 0)
-		DebugTool.setMessage("Colisiones a analizar: " + colisionAnalize[this.id][index].length);
+	//if (index == 0)
+	//	DebugTool.setMessage("Colisiones a analizar: " + colisionAnalize[this.id][index].length);
 	
 	for (q=0, len=colisionAnalize[this.id][index].length; q < len; q++)
 	{
@@ -2169,8 +2645,11 @@ FGameWorld.prototype.colisiones = function(index)
 			{
 				entidades[this.id][index].addColision(colisionAnalize[this.id][index][q], 5);
 				if (colisionAnalize[this.id][index][q].colisionDetection())
-					colisionAnalize[this.id][index][q].addColision(entidades[this.id][index], 5);		
+					colisionAnalize[this.id][index][q].addColision(entidades[this.id][index], 5);	
 			}
+			if (!colisionAnalize[this.id][index][q].detailedColisionDetection() && !entidades[this.id][index].detailedColisionDetection())
+				continue;
+			
 			bvx = colisionAnalize[this.id][index][q].getVelX(true);
 			bvy = colisionAnalize[this.id][index][q].getVelY(true);
 			//Ya hay colision, ahora a ver DE DONDE CACSO ES
@@ -2624,15 +3103,21 @@ FGameWorld.prototype.paint = function()
 	var i;
 	//var tmpGrav = this.gravity/(this.getFPS()*1000);
 	//Ahora a limpiar las que estan destruidas, o destruir algunas inclusive
-	var len, destruido, j;
+	var len, destruido, j, inWorldArea;
 	destruido = false;
 	for (i=0, len=entidades[this.id].length; i < len; i++)
 	{
 		//Destruimos objetos que esten fuera del campo del juego y que tengan activada la propiedad "destroyWhenOutside"
-		if (entidades[this.id][i].destroyWhenOutside && !this.entityInWorldArea(i))
+		inWorldArea = this.entityInWorldArea(i);
+		if (entidades[this.id][i].destroyWhenOutside && !inWorldArea)
 			entidades[this.id][i].destroy();
 		if (!entidades[this.id][i].isDestroyed())
 		{
+			if (inWorldArea)
+				entidades[this.id][i].setInsideWorldView(true);
+			else
+				entidades[this.id][i].setInsideWorldView(false);
+			
 			entidades[this.id][i].mainFunction();
 			if (shouldICalibrate.call(this, i))
 				calibrateColisionRange.call(this, i);
@@ -2650,8 +3135,8 @@ FGameWorld.prototype.paint = function()
 		len--;
 		i=0;
 	}
-	
-	
+
+
 	//Me convencio mas el shouldICalibrate que calibrar absolutamente 1 por 1 a todos los bichos feos estos
 	if (counters[this.id][0] <= 0)
 	{
@@ -2667,7 +3152,7 @@ FGameWorld.prototype.paint = function()
 	{
 		if (entidades[this.id][i].isDestroyed())
 			continue;
-		
+
 		visibleInArea = this.entityInVisibleArea(i);
 		
 		if (!this.world.isFather(entidades[this.id][i].obj) && entidades[this.id][i])
@@ -2677,6 +3162,7 @@ FGameWorld.prototype.paint = function()
 			if (entidades[this.id][i] !== 'undefined')
 				entidades[this.id][i].onSpawn();
 		}
+
 		//Optimizacion para mostrar solamente los objetos en ventana :D
 		$(entidades[this.id][i].obj).css("position", "absolute");
 		//Voy a usar por ahora el setX e Y original que trae FObject
@@ -2690,7 +3176,7 @@ FGameWorld.prototype.paint = function()
 			$(entidades[this.id][i].obj).css("display", "none");
 		} else {
 			$(entidades[this.id][i].obj).css("display", "block");
-			
+			//$(entidades[this.id][i].obj).css("display", "none");
 			if (entidades[this.id][i].getZIndex() > 0) //Si tiene definido zindex ya esta por encima de todos los objetos normales
 				$(entidades[this.id][i].obj).css('z-index', entidades[this.id].length+entidades[this.id][i].getZIndex());
 			else
@@ -2703,15 +3189,25 @@ FGameWorld.prototype.paint = function()
 			$(entidades[this.id][i].obj).css("width", Math.round(entidades[this.id][i].getCurrentWidth(true)*GameRatioSize[this.id]) + "px");
 			$(entidades[this.id][i].obj).css("height", Math.round(entidades[this.id][i].getCurrentHeight(true)*GameRatioSize[this.id])+ "px");
 		}
-		//$(entidades[this.id][i].obj).css("background", "none");
 		
-	}
-	
-	for (i=0; i < hudElements[this.id].length; i++)
-		hudElements[this.id][i].show(this.world, originalSize[this.id].getX(), originalSize[this.id].getY(), GameRatioSize[this.id]);
-	
+		//$(entidades[this.id][i].obj).css("background", "none");
+
 	}
 
+	for (i=0, len=hudElements[this.id].length; i < len; i++)
+	{
+		if (hudElements[this.id][i].isDestroyed())
+		{
+			if (hudElements[this.id][i].hudElement.obj.parentNode !== 'undefined')
+				hudElements[this.id][i].hudElement.obj.parentNode.removeChild(hudElements[this.id][i].hudElement.obj);
+			hudElements[this.id].splice(i, 1);
+			i--;
+			len--;
+		} else {
+			hudElements[this.id][i].show(this.world, originalSize[this.id].getX(), originalSize[this.id].getY(), GameRatioSize[this.id]);
+		}
+	}
+	}
 	this.addTimeout(function(tthis) { return function() {
 			tthis.paint();
 			//alert("lol");
@@ -2824,6 +3320,7 @@ FGameWorld.prototype.Init = function()
 }
 
 })();
+
 }
 
 Base.setCallback(LoadFGame);
