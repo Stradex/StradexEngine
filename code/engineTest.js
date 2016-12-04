@@ -57,6 +57,7 @@ function Iniciar()
 			//this.setMasa(5050.0);
 			//this.setImmovable(true);
 			this.enableColisionDetection();
+			this.enableDetailedColision();
 		}
 		
 	})();
@@ -135,7 +136,7 @@ function Iniciar()
 			this.playAnimation("derecha");
 			this.setElasticidad(0.25);
 			this.enableColisionDetection();
-			
+			this.enableDetailedColision();
 		}
 		
 	})();
@@ -269,14 +270,22 @@ function Iniciar()
 	MiValor = new FDinamicValue(0);
 
 	var miHud = new FHudRect(0.95, 0.95, 0.2, 0.05, MiValor, mapScoreLimit, FGAME_HUD_ALIGNDER, FGAME_HUD_ALIGNBOTTOM);
+	var miHudB = new FHudImage(0.1, 0.9, 150, 'design/campo.png', FGAME_HUD_ALIGNIZQ, FGAME_HUD_ALIGNBOTTOM);
+	//var miTmpAnim = new FAnimation(document.createElement('div'));
+	//miTmpAnim.loadSprites()
 	//miHud.align = FGAME_HUD_ALIGNDER;
 	miJuego.addHudElement(miHud);
+	miJuego.addHudElement(miHudB);
 	miJuego.paint();
 	
 	miJuego.addTimeout(function(tthis) { return function() {
 			tthis.exportsObjectsToJSONTextArea();
 			//alert("lol");
 	}; }(miJuego), 5000, 150);
+	
+	var AmbientTheme = new FSound('music/map01_theme.mp3');
+	AmbientTheme.volume = 0.0;
+	AmbientTheme.onLoaded = function() { AmbientTheme.play(); }
 	
 	//alert(miJuego.exportsObjectsToJSON());
 	//alert("cacusa");
