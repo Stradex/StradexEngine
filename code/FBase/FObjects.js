@@ -1,5 +1,3 @@
-
-
 //Clase unicamente para funciones de carga de css y javascript
 (function() {
 	//Private c++
@@ -12,6 +10,7 @@ var executed = false;
 var t_obj = null;
 var waitloadCalled = false;
 var callbacks = new Array();
+
 FBase = function() {
 	this.callback = null;
 	t_obj = this;
@@ -151,6 +150,9 @@ FBase.prototype.getInfo = function()
 }
 
 })();
+
+
+
 
 var Base = new FBase();
 var loads = 0;
@@ -310,12 +312,15 @@ function getRealPosition(elem)
 	
 })();
 
+
+
 //Clase FCoord
 (function() {
 
-var x = new Array();
-var y = new Array();
-var z = new Array();
+/*
+var xdata = new Array();
+var ydata = new Array();
+var zdata = new Array();*/
 
 FCoord = function(vx, vy, vz)
 {
@@ -327,13 +332,17 @@ FCoord = function(vx, vy, vz)
 	* x, y, z son las coordenadas y variables privadas
 	**/
 	this.mode=false;
-	this.id = x.length;
-	x[x.length] = 0;
-	y[y.length] = 0;
-	z[z.length] = 0;
+	/*this.id = xdata.length;
+	xdata[xdata.length] = 0;
+	ydata[ydata.length] = 0;
+	zdata[zdata.length] = 0;*/
 
 	this.init(vx, vy, vz);
 }
+
+FCoord.prototype.x = 0;
+FCoord.prototype.y = 0;
+FCoord.prototype.z = 0;
 
 FCoord.prototype.copy = function(newCoord)
 {
@@ -348,39 +357,39 @@ FCoord.prototype.copy = function(newCoord)
 }
 FCoord.prototype.getX = function()
 {
-	return x[this.id];
+	return parseFloat(this.x);
 }
 FCoord.prototype.getY = function()
 {
-	return y[this.id];
+	return parseFloat(this.y);
 }
 FCoord.prototype.getZ = function()
 {
-	return z[this.id];
+	return parseFloat(this.z);
 }
 FCoord.prototype.setX = function(tx)
 {
-	if (typeof tx == 'number')
-	{
-		x[this.id] = tx;
-	} else {
-		throw new Error('Solo se pueden ingresar numeros');
-	}
+	//if (typeof tx == 'number')
+	//{
+		this.x = tx;
+	//} else {
+	//	throw new Error('Solo se pueden ingresar numeros');
+	//}
 }
 FCoord.prototype.setY = function(ty)
 {
-	if (typeof ty == 'number')
-	{
-		y[this.id] = ty;
-	} else {
-		throw new Error('Solo se pueden ingresar numeros');
-	}
+	//if (typeof ty == 'number')
+	//{
+		this.y = ty;
+	//} else {
+	//	throw new Error('Solo se pueden ingresar numeros');
+	//}
 }
 FCoord.prototype.setZ = function(tz)
 {
 	if (typeof tz == 'number')
 	{
-		z[this.id] = tz;
+		this.z = tz;
 	} else {
 		throw new Error('Solo se pueden ingresar numeros');
 	}
@@ -389,27 +398,28 @@ FCoord.prototype.getXCSS = function()
 {
 	if (this.mode)
 	{
-		return x[this.id] + "%";
+		return this.x + "%";
 	} else {
-		return x[this.id] + "px";
+		return this.x + "px";
 	}
 }
+
 FCoord.prototype.getYCSS = function()
 {
 	if (this.mode)
 	{
-		return y[this.id] + "%";
+		return this.y + "%";
 	} else {
-		return y[this.id] + "px";
+		return this.y + "px";
 	}
 }
 FCoord.prototype.getZCSS = function()
 {
 	if (this.mode)
 	{
-		return z[this.id] + "%";
+		return this.z + "%";
 	} else {
-		return z[this.id] + "px";
+		return this.z + "px";
 	}
 }
 
@@ -428,15 +438,15 @@ FCoord.prototype.distance = function(bcoord)
 		return 0.0;
 	}
 	var mode = (arguments.length > 1) ? arguments[1] : false;
-	var dx = AbsoluteVal(x[this.id] - bcoord.getX());
-	var dy = AbsoluteVal(y[this.id] - bcoord.getY());
+	var dx = AbsoluteVal(this.x - bcoord.getX());
+	var dy = AbsoluteVal(this.y - bcoord.getY());
 	var dis;
 	var disXY = Math.sqrt(Math.pow(dx, 2) + Math.pow(dy, 2));
 	if (!mode)
 	{
 		dis = Math.sqrt(Math.pow(dx, 2) + Math.pow(dy, 2));
 	} else {
-		var dz = AbsoluteVal(z[this.id] - bcoord.getZ());
+		var dz = AbsoluteVal(this.z - bcoord.getZ());
 		dis = Math.sqrt(Math.pow(disXY, 2) + Math.pow(dz, 2));
 	}
 	return dis;
@@ -515,9 +525,9 @@ FCoord.prototype.getBackPosCSS = function()
 {
 	if (this.mode)
 	{
-		return x[this.id] + "% " + y[this.id] + "%";
+		return this.x + "% " + this.y + "%";
 	} else {
-		return x[this.id] + "px " + y[this.id] + "px";
+		return this.x + "px " + this.y + "px";
 	}
 }
 /**
@@ -609,15 +619,21 @@ FCoord.prototype.getDOMObjPos = function(tObj)
 			Offset.top = pTop;
 		}
 	}
-	x[this.id] = Math.round(Offset.left);
-	y[this.id] = Math.round(Offset.top);
+	this.x = Math.round(Offset.left);
+	this.y = Math.round(Offset.top);
 }
 })();
+
+
+
 //FTimer (para temporizadores inteligentes)
 (function() {
 
+//var idCounter = 0;
+
 FTimer = function(callback, delay)
 {
+	//this.myId = idCounter++;
 	this.timerId = -1;
 	this.start = 0;
 	this.oDelay = delay;
@@ -629,13 +645,15 @@ FTimer = function(callback, delay)
 	this.play();
 };
 
+FTimer.prototype.onTermino = function() { }
+
 FTimer.prototype.play = function()
 {
         this.start = new Date();
 	this.termino = false;
 	if (this.timerId != -1)
        		window.clearTimeout(this.timerId);
-        this.timerId = window.setTimeout(function(t_obj) { return function() { t_obj.termino = true; t_obj.func(); }; }(this), this.remaining);	
+        this.timerId = window.setTimeout(function(t_obj) { return function() { t_obj.termino = true; t_obj.onTermino(); t_obj.func(); }; }(this), this.remaining);	
 };
 FTimer.prototype.resume = function()
 {
@@ -660,11 +678,17 @@ FTimer.prototype.stop = function()
 {
 	if (this.timerId == -1)
 		return;
-	this.termino = false;
+	this.termino = true;
 	this.remaining = this.oDelay;
 	window.clearTimeout(this.timerId);
 	this.timerId = -1;
 		
+};
+
+FTimer.prototype.destroy = function()
+{
+	this.stop();
+	this.func = null; //adios referencia
 };
 
 })();
@@ -983,24 +1007,27 @@ FImage.prototype.init = function()
 })();
 
 //FPath (para la proxima version)
-
 //FMain
+
 (function() {
 var defaultFPS = 60;
 var FPS = new Array();
 var estado = new Array();
 var thisClassName = "FMain"; //IMPORTANTISIMO!!!
+var TimeoutsData = new Array();
 FMain = function()
 {
-	this.Timeouts = new Array();
+	//TimeoutsData[this.id] = new Array();
 	this.Events = new Array();
 	this.maxTime = 60000;
 	this.obj = 0;
 	this.tspeed = 1.0;
 	this.buttonState = false;
 	this.MainID = FPS.length;
-	FPS[FPS.length] = defaultFPS;
-	estado[estado.length] = true;
+	FPS[this.MainID] = defaultFPS;
+	TimeoutsData[this.MainID] = new Array();
+	estado[this.MainID] = true;
+	//timeoutCleaner.call(this);
 }
 
 //Funciones internas privadas
@@ -1030,7 +1057,7 @@ function reverseTimeout()
 {
 	var tmpTimeout;
 	if (arguments.length <= 0)
-		tmpTimeout = this.Timeouts; //es una copia de referencia, por lo cual no hay problem
+		tmpTimeout = TimeoutsData[this.MainID]; //es una copia de referencia, por lo cual no hay problem
 	else
 		tmpTimeout = arguments[0];
 	if(!isArray(tmpTimeout))
@@ -1102,7 +1129,7 @@ FMain.prototype.getFPS = function()
 FMain.prototype.replayAll = function()
 {
 	if (arguments.length <= 0)
-		var tmpTimeout = this.Timeouts; //es una copia de referencia, por lo cual no hay problem
+		var tmpTimeout = TimeoutsData[this.MainID]; //es una copia de referencia, por lo cual no hay problem
 	else
 		var tmpTimeout = arguments[0];
 	if(!isArray(tmpTimeout))
@@ -1123,7 +1150,7 @@ FMain.prototype.replayAll = function()
 FMain.prototype.loopAll = function()
 {
 	if (arguments.length <= 0)
-		var tmpTimeout = this.Timeouts; //es una copia de referencia, por lo cual no hay problem
+		var tmpTimeout = TimeoutsData[this.MainID]; //es una copia de referencia, por lo cual no hay problem
 	else
 		var tmpTimeout = arguments[0];
 	if(!isArray(tmpTimeout))
@@ -1156,7 +1183,7 @@ FMain.prototype.loopAll = function()
 FMain.prototype.clearAllTimeouts = function()
 {
 	if (arguments.length <= 0)
-		var tmpTimeout = this.Timeouts; //es una copia de referencia, por lo cual no hay problem
+		var tmpTimeout = TimeoutsData[this.MainID]; //es una copia de referencia, por lo cual no hay problem
 	else
 		var tmpTimeout = arguments[0];
 	if(!isArray(tmpTimeout))
@@ -1168,7 +1195,7 @@ FMain.prototype.clearAllTimeouts = function()
 			this.clearAllTimeouts(tmpTimeout[i]);
 		} else if (tmpTimeout[i])
 		{
-			tmpTimeout[i].stop();
+			tmpTimeout[i].destroy();
 			tmpTimeout[i] = 0;
 		}
 	}
@@ -1178,7 +1205,7 @@ FMain.prototype.clearAllTimeouts = function()
 FMain.prototype.pauseAll = function()
 {
 	if (arguments.length <= 0)
-		var tmpTimeout = this.Timeouts; //es una copia de referencia, por lo cual no hay problem
+		var tmpTimeout = TimeoutsData[this.MainID]; //es una copia de referencia, por lo cual no hay problem
 	else
 		var tmpTimeout = arguments[0];
 	if(!isArray(tmpTimeout))
@@ -1198,7 +1225,7 @@ FMain.prototype.pauseAll = function()
 FMain.prototype.playAll = function()
 {
 	if (arguments.length <= 0)
-		var tmpTimeout = this.Timeouts; //es una copia de referencia, por lo cual no hay problem
+		var tmpTimeout = TimeoutsData[this.MainID]; //es una copia de referencia, por lo cual no hay problem
 	else
 		var tmpTimeout = arguments[0];
 	if(!isArray(tmpTimeout))
@@ -1218,7 +1245,7 @@ FMain.prototype.playAll = function()
 FMain.prototype.resumeAll = function()
 {
 	if (arguments.length <= 0)
-		var tmpTimeout = this.Timeouts; //es una copia de referencia, por lo cual no hay problem
+		var tmpTimeout = TimeoutsData[this.MainID]; //es una copia de referencia, por lo cual no hay problem
 	else
 		var tmpTimeout = arguments[0];
 	if(!isArray(tmpTimeout))
@@ -1237,71 +1264,78 @@ FMain.prototype.resumeAll = function()
 
 FMain.prototype.pause = function(i)
 {
-	this.pauseAll(this.Timeouts[i]);
+	this.pauseAll(TimeoutsData[this.MainID][i]);
 }
 
 FMain.prototype.play = function(i)
 {
-	this.playAll(this.Timeouts[i]);
+	this.playAll(TimeoutsData[this.MainID][i]);
 }
 
 FMain.prototype.resume = function(i)
 {
-	this.resumeAll(this.Timeouts[i]);
+	this.resumeAll(TimeoutsData[this.MainID][i]);
 }
 
 FMain.prototype.clearTimeouts = function(i)
 {
-	this.clearAllTimeouts(this.Timeouts[i]);
+	this.clearAllTimeouts(TimeoutsData[this.MainID][i]);
 }
 
 FMain.prototype.loop = function(i)
 {
-	this.loopAll(this.Timeouts[i]);
+	this.loopAll(TimeoutsData[this.MainID][i]);
 }
 
 FMain.prototype.addTimeout = function(Func, delay, i)
 {
-	if(!isArray(this.Timeouts[i]))
+	var index;
+	if(!isArray(TimeoutsData[this.MainID][i]))
 	{
-		this.Timeouts[i] = 0;
-		this.Timeouts[i] = new Array();
+		TimeoutsData[this.MainID][i] = 0;
+		TimeoutsData[this.MainID][i] = new Array();
 	}
-
+	index = TimeoutsData[this.MainID][i].length;
 	var tmpTimer = new FTimer(Func, delay);
-	this.Timeouts[i].push(tmpTimer);
+	TimeoutsData[this.MainID][i].push(tmpTimer);
+	
+	tmpTimer.onTermino = function(tmainid, tid, tindex) { return function() {
+		TimeoutsData[tmainid][tid].splice(tindex, 1);
+	}; }(this.MainID, i, index);
+	//this.clearTimeouts(i);
+
 
 }
 FMain.prototype.timePlayed = function(i)
 {
-	if(!isArray(this.Timeouts[i]) || this.Timeouts[i].length < 1)
+	if(!isArray(TimeoutsData[this.MainID][i]) || TimeoutsData[this.MainID][i].length < 1)
 		return -1;
 	var acTime = new Date();
-	var iniTime = this.Timeouts[i][0].start;
+	var iniTime = TimeoutsData[this.MainID][i][0].start;
 	var passTime = acTime - iniTime;
-	passTime += this.Timeouts[i][0].remaining;
+	passTime += TimeoutsData[this.MainID][i][0].remaining;
 	if (passTime < 0)
 		return 0;
-	if (passTime > this.Timeouts[i][this.Timeouts[i].length-1].remaining)
-		return this.Timeouts[i][this.Timeouts[i].length-1].remaining;
+	if (passTime > TimeoutsData[this.MainID][i][TimeoutsData[this.MainID][i].length-1].remaining)
+		return TimeoutsData[this.MainID][i][TimeoutsData[this.MainID][i].length-1].remaining;
 	return passTime;
 }
 FMain.prototype.timeLeft = function(i)
 {
-	if(!isArray(this.Timeouts[i])  || this.Timeouts[i].length < 1)
+	if(!isArray(TimeoutsData[this.MainID][i])  || TimeoutsData[this.MainID][i].length < 1)
 		return -1;
-	var leftTime = this.Timeouts[i][this.Timeouts[i].length-1].remaining - this.timePlayed(i);
+	var leftTime = TimeoutsData[this.MainID][i][TimeoutsData[this.MainID][i].length-1].remaining - this.timePlayed(i);
 	if (leftTime < 0)
 		return 0;
-	if (leftTime > this.Timeouts[i][this.Timeouts[i].length-1].remaining)
-		return this.Timeouts[i][this.Timeouts[i].length-1].remaining;
+	if (leftTime > TimeoutsData[this.MainID][i][TimeoutsData[this.MainID][i].length-1].remaining)
+		return TimeoutsData[this.MainID][i][TimeoutsData[this.MainID][i].length-1].remaining;
 	return leftTime;
 }
 FMain.prototype.timeDuration = function(i)
 {
-	if(!isArray(this.Timeouts[i])  || this.Timeouts[i].length < 1)
+	if(!isArray(TimeoutsData[this.MainID][i])  || TimeoutsData[this.MainID][i].length < 1)
 		return -1;
-	return this.Timeouts[i][this.Timeouts[i].length-1].remaining - this.Timeouts[i][0].remaining;
+	return TimeoutsData[this.MainID][i][TimeoutsData[this.MainID][i].length-1].remaining - TimeoutsData[this.MainID][i][0].remaining;
 }
 FMain.prototype.reverseAll = function()
 {
@@ -1309,9 +1343,9 @@ FMain.prototype.reverseAll = function()
 }
 FMain.prototype.reverseAnim = function(i)
 {
-	if(!isArray(this.Timeouts[i]))
+	if(!isArray(TimeoutsData[this.MainID][i]))
 		return false;
-	reverseTimeout.call(this, this.Timeouts[i]);
+	reverseTimeout.call(this, TimeoutsData[this.MainID][i]);
 }
 FMain.prototype.fixTime = function(time)
 {
@@ -1434,7 +1468,9 @@ FWin = function()
 	height[height.length] = 0;
 	nativeWidth[nativeWidth.length] = 0;
 	nativeHeight[nativeHeight.length] = 0;
+
 	scrollPos[scrollPos.length] = new FCoord(0, 0);
+
 	scrollHeight[scrollHeight.length] = 0;
 	scrollWidth[scrollWidth.length] = 0;
 	autoRefresh[autoRefresh.length] = 0;
@@ -1565,9 +1601,12 @@ FWin.prototype.init = function()
 })();
 
 Ventana = new FWin(); //Variable global visible desde afuera
+
 Ventana.autoRefresh(true);
+
 //FObject
 (function() {
+
 var pos = new Array();
 var absPos = new Array();
 var oldPos = new Array();
@@ -1587,6 +1626,7 @@ var tmpBackImgs = new Array(); //para fadeBackgroundImage
 var thisClassName = "FObject"; //IMPORTANTISIMO!!!
 FObject = function(tobj)
 {
+
 	FMain.call(this);
 	this.id = pos.length;
 	this.opacity = 1.0;
@@ -1606,6 +1646,7 @@ FObject = function(tobj)
 	isDrag[isDrag.length] = false;
 	tmpBackImgs[tmpBackImgs.length] = new Array();
 	fatherElem[fatherElem.length] = 0;
+
 	oldPos[oldPos.length] = new FCoord(0, 0);
 	pos[pos.length] = new FCoord(0, 0);
 	absPos[absPos.length] = new FCoord(0, 0);
@@ -1903,7 +1944,19 @@ FObject.prototype.getKeyCharPressed = function()
 	//return clone(keyCharPressed[this.id]);
 	return clone(keyCharPressed[this.id]);
 }
-
+FObject.prototype.removeKeyCharPressed = function(letter)
+{
+	var i,len;
+	for(i=0, len=keyCharPressed[this.id].length; i < len; i++)
+	{
+		if (letter.toLowerCase() == keyCharPressed[this.id][i].toLowerCase())
+		{
+			keyCharPressed[this.id].splice(i, 1);
+			len--;
+			i--;
+		}
+	}
+}
 /**
 * Funcion para obtener tamaño del objeto
 * 
@@ -4437,12 +4490,15 @@ DebugTool = new FDebug();
 Base.setLoaded();
 }
 
+
+
 Base.onDOMLoad(function(event) {
+
 	if (window.removeEventListener)
 	{
 		window.removeEventListener("DOMContentLoaded", arguments.callee, false);
 	} else if (window.detachEvent) {
-		window.detachEvent("onDOMContentLoaded", callback);
+		window.detachEvent("onDOMContentLoaded", arguments.callee);
 	} else {
 		window["onDOMContentLoaded"] = null;
 	}
